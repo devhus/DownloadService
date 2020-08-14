@@ -4,16 +4,16 @@
 winexe
 C#
 .cs
-D:\projects\Dev\DownloadService\DownloadService.Sample\obj\Debug\
+D:\projects\Dev\DownloadService\DownloadService.Wpf\obj\Debug\
 Devhus.DownloadService.Wpf
 none
 false
 DEBUG;TRACE
-D:\projects\Dev\DownloadService\DownloadService.Sample\App.xaml
+D:\projects\Dev\DownloadService\DownloadService.Wpf\App.xaml
 4930757746
 
-101438185322
-14-1834797557
+101608083283
+14578537270
 DownloadInformation.xaml;MainWindow.xaml;OptionsWindow.xaml;FileAdd.xaml;
 
 False
