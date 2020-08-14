@@ -14,9 +14,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Setup .NET Core
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v4.5
       with:
-        dotnet-version: 3.1.301
+        dotnet-version: v4.5
     - name: Install dependencies
       run: dotnet restore ./DownloadService.sln
     - name: Build
