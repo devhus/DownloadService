@@ -1,0 +1,42 @@
+﻿<Window x:Class="Devhus.DownloadService.Wpf.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Devhus.DownloadService.Wpf"
+        mc:Ignorable="d"
+        Loaded="Window_Loaded"
+        Title="MainWindow" MinHeight="50" MinWidth="720" Height="420" Width="720" WindowStartupLocation="CenterScreen">
+    <Grid>
+        <Grid Margin="24">
+
+            <StackPanel>
+                
+                <Grid Margin="0,0,0,8" >
+                    <Label HorizontalAlignment="Left">File List</Label>
+                    <Button x:Name="btnFileAdd" Content="Add File" Padding="8,4" HorizontalAlignment="Right" Click="btnFileAdd_Click"></Button>
+                </Grid>
+
+                <DataGrid x:Name="downloadFileList"  AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" Margin="0,0,0,8" MouseDoubleClick="downloadFileList_MouseDoubleClick" Height="256">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Binding="{Binding Path=MyFile.Name}" Width="*" Header="Name" />
+                        <DataGridTextColumn Binding="{Binding Path=MyFile.RemoteSizeText}" Width="100" Header="Size"/>
+                        <DataGridTextColumn Binding="{Binding Path=State}" Width="100" Header="Status" HeaderStringFormat=""/>
+                        <DataGridTextColumn Binding="{Binding Path=ChunkParts}" Width="60" Header="Chunks" HeaderStringFormat=""/>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <Grid>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0" VerticalAlignment="Bottom" HorizontalAlignment="Left">
+                        <Button x:Name="btnDownlodStartStop" Content="Start" Padding="8,4" Margin="0,0,8,0" Click="btnDownlodStartStop_Click"></Button>
+                        <Button x:Name="btnDownlodPauseResume" Content="Pause" Padding="8,4" Margin="0,0,8,0" Click="btnDownlodPauseResume_Click"></Button>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0" VerticalAlignment="Bottom" HorizontalAlignment="Right">
+                        <Button x:Name="btnDownloaderOptions" Content="Options" Padding="8,4" Margin="8,0,0,0" Click="btnDownloaderOptions_Click"></Button>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

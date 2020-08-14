@@ -1,0 +1,5 @@
+D:\projects\Dev\DownloadService\DownloadService\DownloadService\bin\Debug\DownloadService.dll
+D:\projects\Dev\DownloadService\DownloadService\DownloadService\bin\Debug\DownloadService.pdb
+D:\projects\Dev\DownloadService\DownloadService\DownloadService\obj\Debug\DownloadService.csprojResolveAssemblyReference.cache
+D:\projects\Dev\DownloadService\DownloadService\DownloadService\obj\Debug\DownloadService.dll
+D:\projects\Dev\DownloadService\DownloadService\DownloadService\obj\Debug\DownloadService.pdb
