@@ -172,6 +172,8 @@ namespace Devhus.DownloadService.Core
                 FileInfo localFileInfo = new FileInfo(MyFile.LocalPath);
                 MyFile.LocalSize = localFileInfo.Length;
                 MyFile.LocalSignature = Utilities.GetFileMd5Hash(MyFile.LocalPath);
+                System.Console.WriteLine($"Devhus.Downloader local size defined {MyFile.LocalSize} bytes");
+
             }
 
             if (ReadRemoteSize)
@@ -179,6 +181,8 @@ namespace Devhus.DownloadService.Core
                 System.Console.WriteLine("Devhus.Downloader getting package remote size...");
                 using (var webResponse = ParentAgent.GetRequestRespone(MyFile.DownloadUrl, "HEAD"))
                     MyFile.RemoteSize = webResponse.ContentLength;
+
+                System.Console.WriteLine($"Devhus.Downloader remote size defined {MyFile.RemoteSize} bytes");
             }
 
             State = PackageState.Ready;
@@ -275,9 +279,10 @@ namespace Devhus.DownloadService.Core
 
             foreach (var chunk in Chunks)
             {
+
                 var task = Task.Run(chunk.Transferring);
-                System.Console.WriteLine("Devhus.Downloader package {0} chunk #{1} is transfering....",
-                    PackageID, chunk.ChunkIndex);
+                System.Console.WriteLine("Devhus.Downloader package {0} chunk #{1} with {2} bytes set to be transfering....",
+                    PackageID, chunk.ChunkIndex, chunk.Length);
                 tasks.Add(task);
             }
 
@@ -298,7 +303,6 @@ namespace Devhus.DownloadService.Core
             {
                 System.Console.WriteLine("Devhus.Downloader package {0} was Canceled or Failed while downloading its chunks!",
                    PackageID);
-
                 return;
             }
 
@@ -385,13 +389,25 @@ namespace Devhus.DownloadService.Core
 
                     using (var chunkStream = new FileStream(chunk.FilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                     {
-                        var bufferSize = DownloaderOptions.BufferBlockSize;
-                        int readBytes;
+                        long bytesToWrite = chunk.LocalBytes;
+                        var bufferSize = bytesToWrite > DownloaderOptions.BufferBlockSize ?
+                                DownloaderOptions.BufferBlockSize :
+                                bytesToWrite;
+                        int readBytes = 0;
                         byte[] readBuffer = new byte[bufferSize];
 
-                        while ((readBytes = chunkStream.Read(readBuffer, 0, readBuffer.Length)) > 0)
+                        //while ((readBytes = chunkStream.Read(readBuffer, 0, readBuffer.Length)) > 0)
+                        while(bytesToWrite > 0)
                         {
+                            //if((bytesToWrite - readBytes) <= 0 && chunkIndex == (Chunks.Count - 1))
+                            //{
+                            //    readBytes -= 1;
+                            //}
+
+                            readBytes = chunkStream.Read(readBuffer, 0, readBuffer.Length);
                             destinationStream.Write(readBuffer, 0, readBytes);
+
+                            bytesToWrite -= readBytes;
                             ReportBuildingProgress(chunkIndex, readBytes);
                         }
 
@@ -405,14 +421,6 @@ namespace Devhus.DownloadService.Core
             Progress.ReceivedBytes = 0;
             ParentAgent.ParentDownloder.CallBuildingFileProgress(Progress);
 
-
-            System.Console.WriteLine("Devhus.Downloader package {0} creating signutre...",
-                   PackageID);
-
-            MyFile.LocalSignature = Utilities.GetFileMd5Hash(MyFile.LocalPath);
-
-            System.Console.WriteLine("Devhus.Downloader package {0} is builded with signutre: {1}",
-                   PackageID, MyFile.LocalSignature);
         }
 
         /// <summary>
@@ -432,19 +440,31 @@ namespace Devhus.DownloadService.Core
 
             State = PackageState.Cleaning;
 
-            for (int chunkIndex = 0; chunkIndex < ChunkParts; chunkIndex++)
+            if (DownloaderOptions.DeleteChunksAfterBuild == true)
             {
-                var chunk = Chunks[chunkIndex];
 
-                System.Console.WriteLine("Devhus.Downloader package {0} deleting {1} chunk..",
-                  PackageID, chunkIndex);
+                for (int chunkIndex = 0; chunkIndex < ChunkParts; chunkIndex++)
+                {
+                    var chunk = Chunks[chunkIndex];
 
-                if (File.Exists(chunk.FilePath))
-                    File.Delete(chunk.FilePath);
+                    System.Console.WriteLine("Devhus.Downloader package {0} deleting {1} chunk..",
+                      PackageID, chunkIndex);
+
+                    if (File.Exists(chunk.FilePath))
+                        File.Delete(chunk.FilePath);
+                }
+
+                System.Console.WriteLine("Devhus.Downloader package {0} chunks removed",
+                     PackageID);
             }
 
-            System.Console.WriteLine("Devhus.Downloader package {0} chunks removed",
-                 PackageID);
+            System.Console.WriteLine("Devhus.Downloader package {0} creating signutre...",
+                   PackageID);
+
+            MyFile.LocalSignature = Utilities.GetFileMd5Hash(MyFile.LocalPath);
+
+            System.Console.WriteLine("Devhus.Downloader package {0} is builded with signutre: {1}",
+                   PackageID, MyFile.LocalSignature);
         }
 
         /// <summary>
@@ -472,18 +492,16 @@ namespace Devhus.DownloadService.Core
 
             State = PackageState.Preparing;
 
-            var neededChunks = (int)Math.Ceiling((double)MyFile.RemoteSize / DownloaderOptions.RequiredSizeForChunks);
-
-            ChunkParts = neededChunks > DownloaderOptions.ChunkCount ? DownloaderOptions.ChunkCount : neededChunks;
+            //var neededChunks = (int)Math.Ceiling((double)MyFile.RemoteSize / DownloaderOptions.RequiredSizeForChunks);
+            ChunkParts = DownloaderOptions.MaxCoresUsage;
 
             if (ChunkParts < 1)
                 ChunkParts = 1;
 
-            var chunkSize = MyFile.RemoteSize / ChunkParts;
-            var chunkRemainSize = MyFile.RemoteSize % ChunkParts;
+            long chunkSize = MyFile.RemoteSize / ChunkParts;
+            //var chunkRemainSize = MyFile.RemoteSize % ChunkParts;
 
-            if (chunkSize < 1)
-            {
+            if (chunkSize < 1){
                 chunkSize = MyFile.RemoteSize;
                 ChunkParts = 1;
             }
@@ -494,25 +512,37 @@ namespace Devhus.DownloadService.Core
             if (!Directory.Exists(MyFile.LocalFolder))
                 Directory.CreateDirectory(MyFile.LocalFolder);
 
+            long chunkRangeStart = 0;
+            long chunkRangeEnd = 0;
+
             for (var chunkIndex = 0; chunkIndex < ChunkParts; chunkIndex++)
             {
                 System.Console.WriteLine("Devhus.Downloader {0} chunk is creating...", chunkIndex);
 
-                long ChunkRangeStart = chunkIndex * chunkSize;
-                long ChunkRangeEnd = ChunkRangeStart + chunkSize;
+                chunkRangeStart += chunkIndex == 0 ? 0 : chunkSize;
+                chunkRangeEnd += chunkIndex == 0 ? chunkSize - 1 : chunkSize;
 
-                if (chunkIndex == (ChunkParts - 1) && chunkRemainSize != 0)
-                    ChunkRangeEnd += chunkRemainSize;
+                //long ChunkRangeStart = chunkIndex * chunkSize;
+                //long ChunkRangeEnd = ((chunkIndex + 1) * chunkSize) - 1;
 
-                if (chunkIndex != (ChunkParts - 1))
-                    ChunkRangeEnd -= 1;
+                //if (chunkIndex == (ChunkParts - 1) && chunkRemainSize != 0)
+                //    ChunkRangeEnd += chunkRemainSize;
+
+                if(ChunkParts > 1 && chunkIndex == (ChunkParts - 1))
+                {
+                    //chunkRangeStart += 1;
+                    chunkRangeEnd = MyFile.RemoteSize - 1;
+                }
+
+                //if (chunkIndex != (ChunkParts - 1))
+                //    ChunkRangeEnd -= 1;
 
                 Progress.Chunks[chunkIndex] = new DownloadChunkProgress()
                 {
                     ChunkIndex = chunkIndex
                 };
 
-                var chunk = new DownloadChunk(this, chunkIndex, ChunkRangeStart, ChunkRangeEnd);
+                var chunk = new DownloadChunk(this, chunkIndex, chunkRangeStart, chunkRangeEnd);
                 Progress.Chunks[chunkIndex].TotalBytes = chunkIndex != (ChunkParts - 1) ? chunk.Length + 1 : chunk.Length;
 
                 Chunks.Add(chunk);

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.IO;
-
+using System.Linq;
 
 namespace Devhus.DownloadService.Core
 {
@@ -11,47 +11,74 @@ namespace Devhus.DownloadService.Core
         /// </summary>
         public static int MaxCoresUsage
         {
-            get { return _MaxCoresUsage; }
+            get
+            {
+                return _MaxCoresUsage;
+            }
             set
             {
                 if (_MaxCoresUsage == value)
                     return;
 
+
+                int[] _maxLimits = getMaxCoreUsageLimits();
+                if (!_maxLimits.Contains(value))
+                {
+                    _MaxCoresUsage = _maxLimits.Where(item => item < value).ToArray().Last();
+                    return;
+                }
+
                 _MaxCoresUsage = value;
-                CHUNK_MAX = Environment.ProcessorCount > MaxCoresUsage ? MaxCoresUsage : Environment.ProcessorCount;
-                if (ChunkCount > CHUNK_MAX)
-                     ChunkCount = CHUNK_MAX;
+                //CHUNK_MAX = Environment.ProcessorCount > MaxCoresUsage ? MaxCoresUsage : Environment.ProcessorCount;
+                //if (ChunkCount > CHUNK_MAX)
+                //    ChunkCount = CHUNK_MAX;
             }
         }
-        private static int _MaxCoresUsage = 8;
+        private static int[] getMaxCoreUsageLimits()
+        {
+            return new int[7] {1, 2, 4, 8, 16, 24, 32 };
+        }
+        private static int getNearestLimit()
+        {
+            int[] _maxLimits = getMaxCoreUsageLimits();
 
+            return getMaxCoreUsageLimits().Where(item => item < Environment.ProcessorCount).ToArray().Last();
+        }
+        //private static int[] _MaxCoreUsageLimits = new int[6] { 2, 4, 8, 16, 24, 32 };
+        private static int _MaxCoresUsage = getNearestLimit();
 
-        /// <summary>
-        /// Define the maximum cores that allowed to be used for the downloader
-        /// </summary>
-        public static int CHUNK_MAX = Environment.ProcessorCount > MaxCoresUsage ? MaxCoresUsage : Environment.ProcessorCount;
 
         /// <summary>
         /// declares the default download path that will be used on files with no local file path and be default path for downloaders that doesn't have downloads path
         /// </summary>
         public static string DownloadsPath { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Downloads");
 
+
+        /// <summary>
+        /// Define the maximum cores that allowed to be used for the downloader
+        /// </summary>
+        //public static int CHUNK_MAX = Environment.ProcessorCount > MaxCoresUsage ? MaxCoresUsage : Environment.ProcessorCount;
+
+
         /// <summary>
         /// declares the number of download threads and file parts, automatically will use CHUNK_MAX if not set or the parameter value was higher than CHUNK_MAX
         /// </summary>
-        public static int ChunkCount
-        {
-            get { return _ChunkCount; }
-            set
-            {
-                if (value > CHUNK_MAX)
-                    _ChunkCount = CHUNK_MAX;
-                else
-                    _ChunkCount = value;
-            }
+        //public static int ChunkCount
+        //{
+        //    get { return _ChunkCount; }
+        //    set
+        //    {
+        //        if (value > CHUNK_MAX)
+        //            _ChunkCount = CHUNK_MAX;
+        //        else
+        //            _ChunkCount = value;
+        //    }
 
-        }
-        private static int _ChunkCount = CHUNK_MAX;
+        //}
+        //private static int _ChunkCount = CHUNK_MAX;
+
+
+        public static bool DeleteChunksAfterBuild = true;
 
         /// <summary>
         /// Stream buffer size which is used for size of blocks
@@ -66,18 +93,18 @@ namespace Devhus.DownloadService.Core
         /// </summary>
         public static long RequiredSizeForChunks { get; set; } = 52428800;
 
-        /// <summary>
-        /// How many time try again to download on failed
-        /// </summary>
-        //public int MaxTryAgainOnFailover { get; set; } 
 
         /// <summary>
         /// Disabling this will cause a need for confirming the downloader to proceed between files by calling Downloader.QueueNext() 
         /// </summary>
         public static bool AutoQueueHandling { get; set; } = true;
 
+        /// <summary>
+        /// How many time try again to download on failed
+        /// </summary>
+        public static int MaxTryAgainOnFailover { get; set; } = 20;  // the maximum number of times to fail.
 
-        public static DownloaderRequestConfig RequestConfiguration { get; set; } 
+        public static DownloaderRequestConfig RequestConfiguration { get; set; }
             = new DownloaderRequestConfig();
     }
 }

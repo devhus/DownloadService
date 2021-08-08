@@ -1,0 +1,5 @@
+D:\projects\dev\DownloadService\DownloadService\bin\DnTurkey\Devhus.DownloadService.dll
+D:\projects\dev\DownloadService\DownloadService\bin\DnTurkey\Devhus.DownloadService.pdb
+D:\projects\dev\DownloadService\DownloadService\obj\DnTurkey\Devhus.DownloadService.csproj.CoreCompileInputs.cache
+D:\projects\dev\DownloadService\DownloadService\obj\DnTurkey\Devhus.DownloadService.dll
+D:\projects\dev\DownloadService\DownloadService\obj\DnTurkey\Devhus.DownloadService.pdb

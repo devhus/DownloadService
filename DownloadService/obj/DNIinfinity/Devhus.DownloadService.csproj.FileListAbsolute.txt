@@ -1,0 +1,6 @@
+D:\projects\Dev\DownloadService\DownloadService\bin\DNIinfinity\Devhus.DownloadService.dll
+D:\projects\Dev\DownloadService\DownloadService\bin\DNIinfinity\Devhus.DownloadService.pdb
+D:\projects\Dev\DownloadService\DownloadService\obj\DNIinfinity\Devhus.DownloadService.csprojAssemblyReference.cache
+D:\projects\Dev\DownloadService\DownloadService\obj\DNIinfinity\Devhus.DownloadService.csproj.CoreCompileInputs.cache
+D:\projects\Dev\DownloadService\DownloadService\obj\DNIinfinity\Devhus.DownloadService.dll
+D:\projects\Dev\DownloadService\DownloadService\obj\DNIinfinity\Devhus.DownloadService.pdb

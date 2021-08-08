@@ -1,5 +1,5 @@
 ﻿using System;
-using System.IO;
+using System.Collections.Generic;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
 
@@ -10,7 +10,7 @@ namespace Devhus.DownloadService.Core
         public DownloaderRequestConfig()
         {
             // Please keep this in false. Because of an error (An existing connection was forcibly closed by the remote host)
-            KeepAlive = false; 
+            KeepAlive = true; 
 
             AllowAutoRedirect = true;
             AutomaticDecompression = DecompressionMethods.None;
@@ -20,7 +20,12 @@ namespace Devhus.DownloadService.Core
             MaximumAutomaticRedirections = 50;
             ClientCertificates = new X509CertificateCollection();
             Pipelined = true;
+            Headers = new Dictionary<string, string>();
         }
+
+
+
+        public Dictionary<string, string> Headers;
 
 
         /// <summary>

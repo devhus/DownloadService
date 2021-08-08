@@ -20,7 +20,7 @@ namespace Devhus.DownloadService.Core
         /// <summary>
         /// Declares the total size of the chunk file
         /// </summary>
-        public long Length => (End - Start);
+        public long Length => (End - Start) + 1;
 
         /// <summary>
         /// Declares range start of the chunk on the remote file stream
@@ -48,6 +48,8 @@ namespace Devhus.DownloadService.Core
         /// </summary>
         private string DownloadUri { get; set; }
 
+
+        internal int FailoverCount { get; set; } = 0;
 
 
         /// <summary>
@@ -77,6 +79,9 @@ namespace Devhus.DownloadService.Core
 
             DownloadUri = ParentPackage.MyFile.DownloadUrl;
 
+            System.Console.WriteLine("Devhus.Downloader {0} package #{1} chunk set download range from {2} to {3}",
+                   ParentPackage.PackageID, ChunkIndex, Start, End);
+
         }
 
         public void Dispose()
@@ -90,113 +95,116 @@ namespace Devhus.DownloadService.Core
         /// <returns></returns>
         internal Task Transferring()
         {
-            try
+            int failTrys = 0;
+
+            while (failTrys <= DownloaderOptions.MaxTryAgainOnFailover)
             {
-
-                var rangeStart = Start + LocalBytes;
-
-                if (rangeStart >= End)
+                try
                 {
-                    return Task.FromResult(0);
-                }
+                    var rangeStart = Start + LocalBytes;
 
-                using (var httpResponse = Downloader.Instnce.Agent.GetRequestRespone(DownloadUri, "GET", rangeStart, End))
-                {
-
-                    if (httpResponse == null)
-                        return Task.FromResult(1);
-
-                    using (var remoteFileStream = httpResponse.GetResponseStream())
+                    if (rangeStart >= End)
                     {
-                        if (remoteFileStream == null || string.IsNullOrWhiteSpace(FilePath))
-                            return Task.FromResult(2);
+                        return Task.FromResult(0);
+                    }
 
-                        if (File.Exists(FilePath) == false)
-                            File.Create(FilePath).Dispose();
 
-                        long bytesToReceiveCount = (Length - LocalBytes);
+                    System.Console.WriteLine("Devhus.Downloader package {0} chunk #{1} with {2} bytes is transfering.... (range: {3} to {4})",
+                        this.ParentPackage.PackageID, this.ChunkIndex, this.Length, rangeStart, End);
 
-                        using (var chunkFileStream = new FileStream(FilePath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite))
+                    using (var httpResponse = Downloader.Instnce.Agent.GetRequestRespone(DownloadUri, "GET", rangeStart, End, this.FailoverCount))
+                    {
+
+                        if (httpResponse == null)
+                            return Task.FromResult(1);
+
+                        using (var remoteFileStream = httpResponse.GetResponseStream())
                         {
+                            failTrys = 0;
 
-                            long bufferSize = bytesToReceiveCount > DownloaderOptions.BufferBlockSize ?
-                                DownloaderOptions.BufferBlockSize :
-                                bytesToReceiveCount;
+                            if (remoteFileStream == null || string.IsNullOrWhiteSpace(FilePath))
+                                return Task.FromResult(2);
 
-                            int readSize = 0;
-                            byte[] downBuffer = new byte[bufferSize];
+                            if (File.Exists(FilePath) == false)
+                                File.Create(FilePath).Dispose();
 
+                            long bytesToReceiveCount = (Length - LocalBytes);
+                            long bytesToReceiveCountLog = (Length - LocalBytes);
 
-                            while (bytesToReceiveCount > 0)
+                            using (var chunkFileStream = new FileStream(FilePath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite))
                             {
-                                while (ParentPackage.State == Enums.PackageState.Paused) { /* pause trasfering and wait */ }
 
-                                if (ParentPackage.State != Enums.PackageState.Downloading)
-                                    break;
+                                long bufferSize = bytesToReceiveCount > DownloaderOptions.BufferBlockSize ?
+                                    DownloaderOptions.BufferBlockSize :
+                                    bytesToReceiveCount;
+
+                                int readSize = 0;
+                                byte[] downBuffer = new byte[bufferSize];
 
 
-                                readSize = remoteFileStream.Read(downBuffer, 0, downBuffer.Length);
-                                chunkFileStream.Write(downBuffer, 0, readSize);
+                                while (bytesToReceiveCount > 0)
+                                {
+                                    while (ParentPackage.State == Enums.PackageState.Paused) { /* pause trasfering and wait */ }
 
-                                LocalBytes += readSize;
-                                bytesToReceiveCount = Length - LocalBytes;
+                                    if (ParentPackage.State != Enums.PackageState.Downloading)
+                                        break;
 
-                                ParentPackage.ReportChunkProgress(ChunkIndex, readSize);
+
+                                    readSize = remoteFileStream.Read(downBuffer, 0, downBuffer.Length);
+                                    chunkFileStream.Write(downBuffer, 0, readSize);
+
+                                    LocalBytes += readSize;
+                                    bytesToReceiveCount -= readSize;
+
+                                    ParentPackage.ReportChunkProgress(ChunkIndex, readSize);
+
+                                }
 
                             }
-
                         }
+
                     }
 
                 }
+                //catch (TaskCanceledException e) // when stream reader timeout occured 
+                //{
+                //    Console.WriteLine("DownloadChunk.class TaskCanceledException error {0}", e.Message);
+                //    throw new DownloaderException("TaskCanceledException! " + e.Message, Enums.ErrorCode.DHDE002);
+                //}
+                //catch (WebException e)
+                //{
+                //    Console.WriteLine("DownloadChunk.class WebException error {0}", e.Message);
+                //    throw new DownloaderException("WebException! " + e.Message, Enums.ErrorCode.DHDE002);
+                //}
+                //catch (Exception e) when (e.Source == "System.Net.Http" ||
+                //                          e.Source == "System.Net.Sockets" ||
+                //                          e.Source == "System.Net.Security" ||
+                //                          e.InnerException is System.Net.Sockets.SocketException)
+                //{
+                //    Console.WriteLine("DownloadChunk.class {0} Exception error {1}", e.Source, e.Message);
+                //    throw new DownloaderException("Exception! " + e.Message, Enums.ErrorCode.DHDE002);
+                //}
+                catch (Exception e) // Maybe no internet!
+                {
+                    Console.WriteLine("DownloadChunk.class Exception error {0}", e.Message);
+                    failTrys++;
+
+                    if (failTrys == DownloaderOptions.MaxTryAgainOnFailover)
+                    {
+                        throw new DownloaderException("UknownException! " + e.Message, Enums.ErrorCode.DHDE002);
+                    }
+                    else
+                    {
+                        Console.WriteLine("DownloadChunk.class Chunk[{0}] Is retrying to resume downloading", this.ChunkIndex);
+                    }
+                }
 
             }
-            catch (TaskCanceledException e) // when stream reader timeout occured 
-            {
-                Console.WriteLine("DownloadChunk.class TaskCanceledException error {0}", e.Message);
-                throw new DownloaderException("TaskCanceledException! " + e.Message, Enums.ErrorCode.DHDE002);
-            }
-            catch (WebException e)
-            {
-                Console.WriteLine("DownloadChunk.class WebException error {0}", e.Message);
-                throw new DownloaderException("WebException! " + e.Message, Enums.ErrorCode.DHDE002);
-            }
-            catch (Exception e) when (e.Source == "System.Net.Http" ||
-                                      e.Source == "System.Net.Sockets" ||
-                                      e.Source == "System.Net.Security" ||
-                                      e.InnerException is System.Net.Sockets.SocketException)
-            {
-                Console.WriteLine("DownloadChunk.class Net/Socket/Security Exception error {0}", e.Message);
-                throw new DownloaderException("Exception! " + e.Message, Enums.ErrorCode.DHDE002);
-            }
-            catch (Exception e) // Maybe no internet!
-            {
-                Console.WriteLine("DownloadChunk.class Exception error {0}", e.Message);
-                throw new DownloaderException("UknownException! " + e.Message, Enums.ErrorCode.DHDE002);
 
-            }
 
             return Task.FromResult(15);
         }
 
-        /// <summary>
-        /// Returns Http requet of the given address using the given method
-        /// </summary>
-        /// <param name="address"></param>
-        /// <param name="method"></param>
-        /// <returns></returns>
-        protected HttpWebRequest GetRequest(Uri address, string method = null)
-        {
-            var httpRequest = (HttpWebRequest)WebRequest.Create(address);
-
-            if (method != null)
-                httpRequest.Method = method;
-
-            httpRequest.UserAgent = "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.2; .NET CLR 1.0.3705;)";
-            httpRequest.AllowWriteStreamBuffering = false;
-
-            return httpRequest;
-        }
 
         /// <summary>
         /// Reads and return the current size of the chunk local file or create it if not exists with returning 0 as file size
@@ -212,7 +220,7 @@ namespace Devhus.DownloadService.Core
                 FileInfo localFileInfo = new FileInfo(FilePath);
                 fileSize = localFileInfo.Length;
 
-                System.Console.WriteLine("Devhus.Downloader {0} package found #{1} chunk with size {2} bytes", 
+                System.Console.WriteLine("Devhus.Downloader {0} package found #{1} chunk with size {2} bytes",
                     ParentPackage.PackageID, ChunkIndex, fileSize);
             }
             else

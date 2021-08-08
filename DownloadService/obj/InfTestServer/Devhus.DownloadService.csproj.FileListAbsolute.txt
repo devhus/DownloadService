@@ -1,0 +1,6 @@
+D:\projects\dev\DownloadService\DownloadService\bin\InfTestServer\Devhus.DownloadService.dll
+D:\projects\dev\DownloadService\DownloadService\bin\InfTestServer\Devhus.DownloadService.pdb
+D:\projects\dev\DownloadService\DownloadService\obj\InfTestServer\Devhus.DownloadService.csprojAssemblyReference.cache
+D:\projects\dev\DownloadService\DownloadService\obj\InfTestServer\Devhus.DownloadService.csproj.CoreCompileInputs.cache
+D:\projects\dev\DownloadService\DownloadService\obj\InfTestServer\Devhus.DownloadService.dll
+D:\projects\dev\DownloadService\DownloadService\obj\InfTestServer\Devhus.DownloadService.pdb

@@ -88,10 +88,10 @@ namespace Devhus.DownloadService.Core
         /// </summary>
         internal void Stop(bool forceStop = false)
         {
-            if(forceStop == false)
-            if (CurrentPacakge == null || 
-                (CurrentPacakge.State != PackageState.Downloading && CurrentPacakge.State != PackageState.Paused))
-                return;
+            if (forceStop == false)
+                if (CurrentPacakge == null ||
+                    (CurrentPacakge.State != PackageState.Downloading && CurrentPacakge.State != PackageState.Paused))
+                    return;
 
             CurrentPacakge.State = PackageState.Canceled;
             ParentDownloder.State = DownloaderState.Stopped;
@@ -226,14 +226,14 @@ namespace Devhus.DownloadService.Core
         }
 
 
-        internal HttpWebResponse GetRequestRespone(string address, string method = null, long? rangeStart = null, long? rangeEnd = null)
+        internal HttpWebResponse GetRequestRespone(string address, string method = null, long? rangeStart = null, long? rangeEnd = null, int? failTrys = null)
         {
-           
+
 
             try
             {
                 System.Console.WriteLine("Devhus.Downloader creating new http reponse...");
-                var httpRequest = (HttpWebRequest)WebRequest.Create(address);
+                var httpRequest = HttpWebRequest.CreateHttp(address);
 
                 if (method != null)
                 {
@@ -263,6 +263,14 @@ namespace Devhus.DownloadService.Core
                 httpRequest.Pipelined = DownloaderOptions.RequestConfiguration.Pipelined;
                 httpRequest.Proxy = DownloaderOptions.RequestConfiguration.Proxy;
 
+                //if(DownloaderOptions.RequestConfiguration.Headers.Count > 0)
+                //{
+                //    foreach(var header in DownloaderOptions.RequestConfiguration.Headers)
+                //    {
+                //        httpRequest.Headers.Add(header.Key, header.Value);
+                //    }
+                //}
+
                 if (rangeStart != null)
                 {
                     if (rangeEnd == null)
@@ -275,11 +283,17 @@ namespace Devhus.DownloadService.Core
                 var response = (HttpWebResponse)httpRequest.GetResponse();
 
                 System.Console.WriteLine("Devhus.Downloader http response ready to return...");
+                System.Console.WriteLine("Devhus.Downloader http response ready {0}", response);
                 return response;
             }
             catch (WebException e)
             {
                 System.Console.WriteLine("WebException throwed with Status: {0} and Message: {1}", e.Status, e.Message);
+
+                //if (failTrys != null && failTrys++ <= DownloaderOptions.MaxTryAgainOnFailover)
+                //{
+                //    return GetRequestRespone(address, method, rangeStart, rangeEnd, failTrys);
+                //}
 
                 switch (e.Status)
                 {
@@ -292,8 +306,6 @@ namespace Devhus.DownloadService.Core
                             }
                             break;
                         }
-
-
                     case WebExceptionStatus.SecureChannelFailure:
                         {
                             if (ServicePointManager.SecurityProtocol != SecurityProtocolType.Tls &&

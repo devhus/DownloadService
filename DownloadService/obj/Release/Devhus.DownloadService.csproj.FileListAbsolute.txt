@@ -1,6 +1,5 @@
-D:\projects\Dev\DownloadService\DownloadService\bin\Release\Devhus.DownloadService.dll
-D:\projects\Dev\DownloadService\DownloadService\bin\Release\Devhus.DownloadService.pdb
-D:\projects\Dev\DownloadService\DownloadService\obj\Release\Devhus.DownloadService.dll
-D:\projects\Dev\DownloadService\DownloadService\obj\Release\Devhus.DownloadService.pdb
-D:\projects\Dev\DownloadService\DownloadService\obj\Release\Devhus.DownloadService.csproj.CoreCompileInputs.cache
-D:\projects\Dev\DownloadService\DownloadService\obj\Release\Devhus.DownloadService.csprojAssemblyReference.cache
+D:\projects\dev\DownloadService\DownloadService\bin\Release\Devhus.DownloadService.dll
+D:\projects\dev\DownloadService\DownloadService\bin\Release\Devhus.DownloadService.pdb
+D:\projects\dev\DownloadService\DownloadService\obj\Release\Devhus.DownloadService.csproj.CoreCompileInputs.cache
+D:\projects\dev\DownloadService\DownloadService\obj\Release\Devhus.DownloadService.dll
+D:\projects\dev\DownloadService\DownloadService\obj\Release\Devhus.DownloadService.pdb

@@ -155,9 +155,13 @@ namespace Devhus.DownloadService
             {
                 if (Agent.CurrentPacakge.State == Enums.PackageState.Downloading || 
                     Agent.CurrentPacakge.State == Enums.PackageState.Paused || forceStop == true)
+                {
                     Agent.Stop(forceStop);
-                else
-                 Console.WriteLine("Downloader cannot be stopped while package is " + Agent.CurrentPacakge.State + " state.");
+                    Console.WriteLine("Devhus.Downloader has stopped, agent state was {0} - package state {1}", Agent.State, Agent.CurrentPacakge.State);
+                    return;
+                }
+                    
+                 Console.WriteLine("Devhus.Downloader cannot be stopped while package is {0} state.", Agent.CurrentPacakge.State);
             }
         }
 
